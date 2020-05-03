@@ -8,19 +8,23 @@ from Crypto.Cipher import AES
 import pickle
 import socket
 import sys
+from random import seed
+from random import randint
 
 """
 Sequence for Arguments when running:
-0 - listen port
-1 - forward ip
-2 - forward port
+clientIP clientPort selfPort nextNodeIp nextNodePort privateKey
+
 """
 
-#not real ip addresses for now
-SELF_NODE = ("127.0.0.1", 1235)
-NODE_AFTER = ("127.0.0.1", 1236)
-CLIENT = ("127.0.0.1", 1234)
-NODE_PRIV_KEY = 17
+CLIENT = (sys.argv[1], int(sys.argv[2]))
+SELF_NODE = ("127.0.0.1", int(sys.argv[3]))
+NODE_AFTER = (sys.argv[4], int(sys.argv[5]))
+NODE_PRIV_KEY = int(sys.argv[6])
+
+print("Client info: " + str(CLIENT))
+print("Self info: " + str(SELF_NODE))
+print("Post-Node info: " + str(NODE_AFTER))
 
 """
 Node steps:
@@ -118,6 +122,9 @@ MD5_key = hashlib.md5(str(DH_encryption_key).encode()).hexdigest()
 print(MD5_key)
 
 message_in["Message"] = decrypt_message(MD5_key, message_in["Message"], nonce)
-print(message_in["Message"].decode("utf8"))
 
-communicate_post(message_in, NODE_AFTER)
+try:
+    print(message_in["Message"].decode("utf8"))
+except UnicodeDecodeError:
+    print("Not fully decoded")
+    communicate_post(message_in, NODE_AFTER)

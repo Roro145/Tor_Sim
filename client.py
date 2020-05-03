@@ -7,11 +7,12 @@ import time
 
 
 NodeList = [("127.0.0.1", 1235), ("127.0.0.1", 1236), ("127.0.0.1", 1237)]
-NodeList = [("127.0.0.1", 1235)]
+#NodeList = [("127.0.0.1", 1235), ("127.0.0.1", 1236)]
+#NodeList = [("127.0.0.1", 1235)]
 CLIENT_NODE = ("127.0.0.1", 1234)
 DHKeyList = []
 MD5KeyList = []
-DH_vals = {"p": 11, "g": 13}
+DH_vals = {"p": 1113, "g": 1333}
 CLIENT_PRIV_KEY = 15
 
 """
@@ -82,7 +83,8 @@ for key in DHKeyList:
 message = "testing01".encode("utf8")
 print(message)
 nonceList = []
-for key in MD5KeyList:
+for x in range(len(MD5KeyList)-1, -1, -1):
+    key = MD5KeyList[x]
     cipher = AES.new(key.encode("utf8"), AES.MODE_EAX)
     message, tag = cipher.encrypt_and_digest(message)
     nonceList.append(cipher.nonce)
