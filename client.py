@@ -1,9 +1,11 @@
 from Diffe_Hellman import *
 from Crypto.Cipher import AES
+import socket
 import hashlib
+import pickle
 
 
-NodeList = ["128.0.0.1", "196.0.0.1", "124.0.0.1"]
+NodeList = [("128.0.0.1", 0), ("196.0.0.1", 0), ("124.0.0.1", 0)]
 DHKeyList = []
 MD5KeyList = []
 DH_vals = {"p": 11, "g": 13}
@@ -26,6 +28,7 @@ def DH_key_exchange(DH_dict, priv_key, NodeIP):
     DH_mixed = diffe_Hellman_step(DH_dict["p"], DH_dict["g"], priv_key)
     print("Sending DH_mixed key to: " + str(NodeIP))
     DH_dict["encoded"] = DH_mixed
+    
     send_initial_DH(DH_dict, NodeIP)
     
     otherDict = recieve_DH()
@@ -35,20 +38,28 @@ def DH_key_exchange(DH_dict, priv_key, NodeIP):
     return final_dh_key
     
 def send_initial_DH(dict1, node):
-    print("Sending " + str(dict1) + " to node: " + node)
+    print("Sending " + str(dict1) + " to node: " + str(node))
+    dictStr = pickle.dumps(dict1)
+   # clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+   # clientSocket.sendto(dictStr, node)
+    
     return 0
 
 
 def recieve_DH():
+    ## TO DO ##
     print("Recieving DH_mixed key")
     #recieved dict:
     returnDict = {"p": 11, "g": 13, "encoded": 9}
 
     return returnDict
     
-def send_msg(infoDict):
-    print("Sending info dict to first node: ")
-    print(infoDict)
+def send_msg(infoDict, node):
+    print("Sending: " + str(infoDict) + " to " + str(node))
+    dictStr = pickle.dumps(infoDict)
+   # clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+   # clientSocket.sendto(dictStr, node)
+    
     return 0
 
 for ip in NodeList:
@@ -58,10 +69,9 @@ for ip in NodeList:
 DHKeyList = [11, 15, 17]
 for key in DHKeyList:
     MD5KeyList.append(hashlib.md5(str(key).encode()).hexdigest())
-    
 
-print(DHKeyList)
-print(MD5KeyList)
+#print(DHKeyList)
+#print(MD5KeyList)
 
 #This triple encodes the message
 message = "abc".encode("utf8")
@@ -72,10 +82,10 @@ for key in MD5KeyList:
     message, tag = cipher.encrypt_and_digest(message)
     nonceList.append(cipher.nonce)
     
-forwardMsg = {"Nonces": nonceList, "message": message}
-send_msg(forwardMsg)
+forwardMsg = {"Nonces": nonceList, "Message": message}
+send_msg(forwardMsg, NodeList[0])
 
-#Each node should use the nonce value at the end of the list 
+#Each node should use the nonce value at the end of the list
 """
 #DECODING PROCESS:
 for x in range(len(MD5KeyList)-1, -1, -1):
