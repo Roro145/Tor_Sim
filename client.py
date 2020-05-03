@@ -24,7 +24,7 @@ Forward
 
 def DH_key_exchange(DH_dict, priv_key, NodeIP):
     DH_mixed = diffe_Hellman_step(DH_dict["p"], DH_dict["g"], priv_key)
-    print("Sending DH_mixed key")
+    print("Sending DH_mixed key to: " + str(NodeIP))
     DH_dict["encoded"] = DH_mixed
     send_initial_DH(DH_dict, NodeIP)
     
@@ -45,6 +45,11 @@ def recieve_DH():
     returnDict = {"p": 11, "g": 13, "encoded": 9}
 
     return returnDict
+    
+def send_msg(infoDict):
+    print("Sending info dict to first node: ")
+    print(infoDict)
+    return 0
 
 for ip in NodeList:
     current_DH_key = DH_key_exchange(DH_vals, CLIENT_PRIV_KEY, ip)
@@ -66,21 +71,19 @@ for key in MD5KeyList:
     cipher = AES.new(key.encode("utf8"), AES.MODE_EAX)
     message, tag = cipher.encrypt_and_digest(message)
     nonceList.append(cipher.nonce)
-    print(message)
     
-print("Decryption: ")
+forwardMsg = {"Nonces": nonceList, "message": message}
+send_msg(forwardMsg)
+
+#Each node should use the nonce value at the end of the list 
+"""
+#DECODING PROCESS:
 for x in range(len(MD5KeyList)-1, -1, -1):
     key = MD5KeyList[x]
     cipher = AES.new(key.encode("utf8"), AES.MODE_EAX)
+    print(cipher.nonce)
     decryptionCipher = AES.new(key.encode("utf8"), AES.MODE_EAX, nonceList[x])
     message = decryptionCipher.decrypt(message)
 
-
 print(message.decode("utf-8"))
-
-"""
-plaintext = decryptCipher.decrypt_and_verify(message, tag)
-print(plaintext.decode("utf-8"))
-
-
 """
