@@ -4,14 +4,23 @@ node and relay the message
 """
 from Diffe_Hellman import *
 import hashlib
+from Crypto.Cipher import AES
 import pickle
+import socket
+import sys
+
+"""
+Sequence for Arguments when running:
+0 - listen port
+1 - forward ip
+2 - forward port
+"""
 
 #not real ip addresses for now
-NODE_AFTER = ("192.0.0.1", 0)
-CLIENT = ("192.0.0.1", 0)
-NODE_PRIV_KEY = 356094
-p_val = 355933
-g_val = 355633
+SELF_NODE = ("127.0.0.1", 1235)
+NODE_AFTER = ("127.0.0.1", 1236)
+CLIENT = ("127.0.0.1", 1234)
+NODE_PRIV_KEY = 17
 
 """
 Node steps:
@@ -39,67 +48,76 @@ DH_final_key - Determines the Pre-SHA256 hash key
 """
 
 def DH_recieve_keys():
-    mainDict = {}
-    ## TO DO ##
-    #Replace with code expecting incoming dict with following values:
-    #also: p_val, g_val
     print("Waiting to recieve DH Key")
-    mainDict["encoded"] = 232862
-    return mainDict
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.bind(SELF_NODE)
+    message_in = s.recvfrom(1024)
+    message = message_in[0]
+    returnDict = pickle.loads(message)
+    print("Initial DH Recieved")
+    
+    return returnDict
     
 def DH_return_key_info(mainDict, CLIENT_INFO):
-    #replace with code to send the mainDict to the node that sent it
-    print("Waiting to send DH key")
-    mainDict["encoded"] = diffe_Hellman_step(p_val, g_val, NODE_PRIV_KEY)
+    print("Attempting to send DH key")
+    mainDict["encoded"] = diffe_Hellman_step(mainDict["p"], mainDict["g"], NODE_PRIV_KEY)
     mainDictStr = pickle.dumps(mainDict)
     
     #sends the data over
-    # clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    # clientSocket.sendto(mainDictStr, CLIENT_INFO)
-
-    return ""
+    clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    clientSocket.sendto(mainDictStr, CLIENT_INFO)
+    print("DH Key sent")
+    return 0
     
 def DH_final_key_gen(mainDict):
-    return diffe_Hellman_step(p_val, mainDict["encoded"], NODE_PRIV_KEY)
+    return diffe_Hellman_step(mainDict["p"], mainDict["encoded"], NODE_PRIV_KEY)
 
 #Function should listen for incoming messages
 def recieve_message():
-    ## TO DO ##
     print("Listening for incoming msg")
-    ## TO DO ##
-    returnDict = {"Message": 10}
+    
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.bind(SELF_NODE)
+    message_in = s.recvfrom(1024)
+    message = message_in[0]
+    returnDict = pickle.loads(message)
+    print("Msg received")
     return returnDict
 
 #decrypt the message that comes in
 def decrypt_message(encryption_key, msg, nonce):
-    decryptionCipher = AES.new(key.encode("utf8"), AES.MODE_EAX, nonce)
-    message = decryptionCipher.decrypt(message)
+    decryptionCipher = AES.new(encryption_key.encode("utf8"), AES.MODE_EAX, nonce)
+    message = decryptionCipher.decrypt(msg)
+    print("Decryption Successful")
     return message
 
 #Sends the info to the next node
 def communicate_post(msgDict, reciever_info):
     #send the msgDict to reciever_info
-    print("Sending msg to next node")
-    msgDictStr = pickle.dumps(msgDict)
+    print("Sending Message to Next Node")
+    mainDictStr = pickle.dumps(msgDict)
     
-    # clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    # clientSocket.sendto(mainDictStr, reciever_info)
+    clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    clientSocket.sendto(mainDictStr, reciever_info)
     return 0
     
 
 DH_msg_dict = DH_recieve_keys();
+
 #determines the final key locally
 DH_encryption_key = DH_final_key_gen(DH_msg_dict)
+print("Diffe-Hellman Key: " + str(DH_encryption_key))
 
 #determines the private key to send back
 DH_return_key_info(DH_msg_dict, CLIENT)
 
-
-
 message_in = recieve_message()
 nonce = message_in["Nonces"].pop()
-MD5_key = hashlib.md5(str(key).encode()).hexdigest()
+MD5_key = hashlib.md5(str(DH_encryption_key).encode()).hexdigest()
+
+print(MD5_key)
 
 message_in["Message"] = decrypt_message(MD5_key, message_in["Message"], nonce)
+print(message_in["Message"].decode("utf8"))
 
 communicate_post(message_in, NODE_AFTER)
