@@ -9,6 +9,8 @@ import pickle
 import socket
 import sys
 from threading import *
+import time
+
 
 """
 Sequence for Arguments when running:
@@ -132,10 +134,12 @@ def communicate_post(msgDict, reciever_info):
     
 class ClientSet(Thread):
     def run(self):
-        t1 = Thread(target = self.recieve_msg())
-        t1.start()
-        self.recieve_msg()
+        for x in range(3):
+            time.sleep(1)
+            t = Thread(target = self.recieve_msg)
+            t.start()
 
+    
     def insert(self, newClient):
         clientDict[newClient.identifier] = newClient
     
@@ -149,7 +153,10 @@ class ClientSet(Thread):
         print("Listening for incoming msg -- clientSet")
         
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.bind(SELF_NODE)
+        try:
+            s.bind(SELF_NODE)
+        except OSError:
+            print()
         message_in = s.recvfrom(1024)
         print("Data recieved")
         s.close()
@@ -165,7 +172,7 @@ class ClientSet(Thread):
         name = returnDict["identifier"]
         if name in clientDict:
             print(clientDict)
-            clientDict[name].processMessage(returnDict, clientDict)
+            clientDict[name].processMessage(returnDict)
             #after forwarding the message
             del clientDict[name]
             
@@ -180,11 +187,12 @@ class Client():
     def __init__(self, identifier):
         self.NODE_AFTER = NODE_AFTER
         self.identifier = identifier
+        self.DH_encryption_key = 0
         
     def processMessage(self, message_in):
         #nonce is sorted in reverse order based on the encryption
         nonce = message_in["Nonces"].pop()
-        MD5_key = hashlib.md5(str(DH_encryption_key).encode()).hexdigest()
+        MD5_key = hashlib.md5(str(self.DH_encryption_key).encode()).hexdigest()
 
         #peel off one layer from "the onion"
         message_in["Message"] = decrypt_message(MD5_key, message_in["Message"], nonce)
@@ -199,13 +207,12 @@ class Client():
     def processDH(self, DH_in):
         
         #determines the final key locally
-        DH_encryption_key = DH_final_key_gen(DH_in)
+        self.DH_encryption_key = DH_final_key_gen(DH_in)
         #print("Diffe-Hellman Key: " + str(DH_encryption_key))
 
         #determines the private key to send back
         DH_return_key_info(DH_in, CLIENT)
             
-    global DH_encryption_key
     
 c1 = ClientSet()
 c1.run()

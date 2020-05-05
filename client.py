@@ -85,7 +85,7 @@ def encrypt_and_send_master(identity, message_in, MD5KeyList, Node1):
         message, tag = cipher.encrypt_and_digest(message)
         nonceList.append(cipher.nonce)
 
-    time.sleep(4)
+    time.sleep(2)
     forwardMsg = {"identifier": identity, "Nonces": nonceList, "Message": message}
     send_info(forwardMsg, Node1)
     return 0
